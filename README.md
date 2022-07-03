@@ -5,8 +5,7 @@ Developed in Qiskit (qiskit v0.37)<br>
 
 Example: <br>
 
-### Import
-
+```
 from qTreeSearch import quantumTreeSearch as QTS
 
 states=5
@@ -28,6 +27,6 @@ qts = QTS(tree=transition_kernel, n_states=states, action_set=action_set)
 
 q_tree = qts.traverse(depth=2, mode="depth")
 counts = qts.measure(goal_state=3, iterations=1)
-
+```
 
 
