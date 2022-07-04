@@ -103,7 +103,7 @@ class quantumTreeSearch:
 			pass
 		
 
-		else:
+		elif mode == "depth":
 			if depth is None:
 				raise ValueError("Depth is missing")
 			
@@ -229,6 +229,8 @@ class quantumTreeSearch:
 			counts = execute_circuit(self.q_tree, shots=shots)
 
 			new_counts = {}
+			optimal_action_seq = None
+			optimal_action_counter = 0
 			for k in counts:
 				k_list = k.split()
 				k_reversed = list(map(lambda x: x[::-1], k_list))
@@ -236,7 +238,9 @@ class quantumTreeSearch:
 				k_reversed_str = list(map( lambda x: str(x), k_reversed_int))
 				k_new = ' '.join(k_reversed_str)
 				new_counts[k_new] = counts[k]
+				if new_counts[k_new] > optimal_action_counter:
+					optimal_action_seq = k_new
 			
-			return new_counts
+			return new_counts, optimal_action_seq
 
 	

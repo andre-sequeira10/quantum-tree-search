@@ -3,7 +3,7 @@
 Quantum tree search algorithm for non-constant branching factor trees. <br>
 Developed in Qiskit (qiskit v0.37)<br>
 
-Example: <br>
+Example: mode="depth" - The algorithm will try to find the goal state in a given depth <br>
 
 ```
 from qTreeSearch import quantumTreeSearch as QTS
@@ -26,7 +26,7 @@ for i in range(3,states):
 qts = QTS(tree=transition_kernel, n_states=states, action_set=action_set)
 
 q_tree = qts.traverse(depth=2, mode="depth")
-counts = qts.measure(goal_state=3, iterations=1)
+counts, actions = qts.measure(goal_state=3, iterations=1)
 ```
 
 
