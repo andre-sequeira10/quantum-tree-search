@@ -42,21 +42,26 @@ class quantumTreeSearch:
 		
 		else:
 			for state in states:
-				a_s = len(self.tree[state])
-				self.branching.append(a_s)
 
-				state_v = [complex(0.0,0.0) for i in range(2**self.a_qubits)]
+				if self.tree[state] == []:
+					pass
+				else:
 
-				#create uniform superposition over the set of admissible actions
-				for (a_d,sprime) in self.tree[state]:
-					state_v[a_d] += complex(1/np.sqrt(a_s) , 0.0)
+					a_s = len(self.tree[state])
+					self.branching.append(a_s)
 
-				sbin=bin(state)[2:].zfill(self.s_qubits)
+					state_v = [complex(0.0,0.0) for i in range(2**self.a_qubits)]
 
-				ctrl_init_a = StatePreparation(state_v, label=r"$\mathcal{A}$").control(self.s_qubits, ctrl_state=sbin)
+					#create uniform superposition over the set of admissible actions
+					for (a_d,sprime) in self.tree[state]:
+						state_v[a_d] += complex(1/np.sqrt(a_s) , 0.0)
 
-				#circuit.ctrl_initialize(statevector=state_v, ctrl_state=sbin, ctrl_qubits=[i for i in s], qubits=[i for i in a])
-				circuit = circuit.compose(ctrl_init_a, [i for i in s]+[i for i in a])
+					sbin=bin(state)[2:].zfill(self.s_qubits)
+
+					ctrl_init_a = StatePreparation(state_v, label=r"$\mathcal{A}$").control(self.s_qubits, ctrl_state=sbin)
+
+					#circuit.ctrl_initialize(statevector=state_v, ctrl_state=sbin, ctrl_qubits=[i for i in s], qubits=[i for i in a])
+					circuit = circuit.compose(ctrl_init_a, [i for i in s]+[i for i in a])
 
 		return circuit
 
@@ -71,7 +76,15 @@ class quantumTreeSearch:
 		for state in states:
 			sbin=bin(state)[2:].zfill(self.s_qubits)
 
-			#create uniform superposition over the set of admissible actions
+			if self.tree[state] == []:
+				state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
+				state_v[state] += complex(1.0 , 0.0)
+				abin = bin(a_d)[2:].zfill(self.a_qubits)
+				
+				ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
+				
+				circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
+
 			for (a_d,sp) in self.tree[state]:
 				
 				state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
@@ -81,13 +94,6 @@ class quantumTreeSearch:
 				ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
 				
 				circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
-
-
-			if self.tree[state] == []:
-				#TO DO - prepare the same state again 
-				pass
-
-				#circuit.ctrl_initialize(statevector=state_v, ctrl_state=sbin+abin, ctrl_qubits=ctrls, qubits=[i for i in sprime])
 
 		return circuit
 
@@ -222,6 +228,15 @@ class quantumTreeSearch:
 
 			counts = execute_circuit(self.q_tree, shots=shots)
 
-			return counts
+			new_counts = {}
+			for k in counts:
+				k_list = k.split()
+				k_reversed = list(map(lambda x: x[::-1], k_list))
+				k_reversed_int = list(map( lambda x: int(x,2), k_reversed))
+				k_reversed_str = list(map( lambda x: str(x), k_reversed_int))
+				k_new = ' '.join(k_reversed_str)
+				new_counts[k_new] = counts[k]
+			
+			return new_counts
 
 	
