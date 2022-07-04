@@ -201,16 +201,16 @@ class quantumTreeSearch:
 				regs += [i for i in self.states_d["states_d{0}".format(d)]]
 			
 			self.diffusion_circuit = self.diffusion_circuit.compose(self.q_tree_inverse, regs)
-			#self.diffusion_circuit.x(regs_diffusion)
-			self.diffusion_circuit.x(regs)
-			#self.diffusion_circuit.h(regs_diffusion[-1])
-			self.diffusion_circuit.h(regs[-1])
-			#self.diffusion_circuit.mct(regs_diffusion[:-1], regs_diffusion[-1])
-			self.diffusion_circuit.mct(regs[:-1], regs[-1])
-			#self.diffusion_circuit.h(regs_diffusion[-1])
-			self.diffusion_circuit.h(regs[-1])
-			#self.diffusion_circuit.x(regs_diffusion)
-			self.diffusion_circuit.x(regs)
+			self.diffusion_circuit.x(regs_diffusion)
+			#self.diffusion_circuit.x(regs)
+			self.diffusion_circuit.h(regs_diffusion[-1])
+			#self.diffusion_circuit.h(regs[-1])
+			self.diffusion_circuit.mct(regs_diffusion[:-1], regs_diffusion[-1])
+			#self.diffusion_circuit.mct(regs[:-1], regs[-1])
+			self.diffusion_circuit.h(regs_diffusion[-1])
+			#self.diffusion_circuit.h(regs[-1])
+			self.diffusion_circuit.x(regs_diffusion)
+			#self.diffusion_circuit.x(regs)
 			self.diffusion_circuit = self.diffusion_circuit.compose(self.q_tree, regs)
 
 			for i in range(iterations):
