@@ -75,25 +75,27 @@ class quantumTreeSearch:
 		
 		for state in states:
 			sbin=bin(state)[2:].zfill(self.s_qubits)
-
-			if self.tree[state] == []:
-				state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
-				state_v[state] += complex(1.0 , 0.0)
-				abin = bin(a_d)[2:].zfill(self.a_qubits)
-				
-				ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
-				
-				circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
-
+			
 			for (a_d,sp) in self.tree[state]:
-				
-				state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
-				state_v[sp] += complex(1.0 , 0.0)
-				abin = bin(a_d)[2:].zfill(self.a_qubits)
-				
-				ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
-				
-				circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
+
+				if self.tree[state] == []:
+					state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
+					state_v[state] += complex(1.0 , 0.0)
+					abin = bin(a_d)[2:].zfill(self.a_qubits)
+					
+					ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
+					
+					circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
+
+				else:
+					
+					state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
+					state_v[sp] += complex(1.0 , 0.0)
+					abin = bin(a_d)[2:].zfill(self.a_qubits)
+					
+					ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
+					
+					circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
 
 		return circuit
 
@@ -157,7 +159,6 @@ class quantumTreeSearch:
 				if states_list[0] and len(states_list):
 					self.leafs = True
 					break
-
 		return self.q_tree
 
 	def measure(self, goal_state=None, iterations=None, shots=1024):
@@ -184,11 +185,11 @@ class quantumTreeSearch:
 					self.q_tree = self.traverse(depth=inc, mode="depth")
 				else:
 					self.leafs = True
-
+				
 				self.avg_branching = np.round(np.mean(self.branching))
 				#print("avg - {}".format(self.avg_branching))
 
-				if iterations == None:
+				if iterations == None or self.mode == 'iterative_deepning':
 					iterations = int(np.floor(np.pi/4 * np.sqrt(self.avg_branching**self.depth)))
 
 				#############################
