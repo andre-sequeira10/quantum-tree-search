@@ -15,6 +15,7 @@ class quantumTreeSearch:
 		self.n_actions = len(action_set)
 		self.constant_b = constant_branching
 		self.branching = []
+		self.mode = None
 
 		if self.tree is None:
 			raise ValueError("Tree must be specified")
@@ -60,7 +61,6 @@ class quantumTreeSearch:
 
 					ctrl_init_a = StatePreparation(state_v, label=r"$\mathcal{A}$").control(self.s_qubits, ctrl_state=sbin)
 
-					#circuit.ctrl_initialize(statevector=state_v, ctrl_state=sbin, ctrl_qubits=[i for i in s], qubits=[i for i in a])
 					circuit = circuit.compose(ctrl_init_a, [i for i in s]+[i for i in a])
 
 		return circuit
@@ -98,9 +98,15 @@ class quantumTreeSearch:
 		return circuit
 
 	def traverse(self, depth=None, mode="depth"):
+		
+		if self.mode == None:
+			self.mode = mode
+		
+		self.branching = []
 
 		if mode == "iterative_deepning":
-			pass
+
+			self.q_tree = None #self.traverse(depth=depth, mode="depth")
 		
 
 		elif mode == "depth":
@@ -145,11 +151,20 @@ class quantumTreeSearch:
 				self.q_tree = self.q_tree.compose(t_d, regs)
 
 				neighbours = list(chain(*n))
+				
+				#check if we have only leafs
+				states_list = [self.tree[state] == [] for state in neighbours]
+				if states_list[0] and len(states_list):
+					self.leafs = True
+					break
 
 		return self.q_tree
 
 	def measure(self, goal_state=None, iterations=None, shots=1024):
-		if goal_state == None:
+
+		self.goal_state = goal_state
+
+		if self.goal_state == None:
 			self.a_classical = {}
 			for d in range(self.depth):
 				self.a_classical["actions{0}".format(d)]=ClassicalRegister(self.a_qubits,name="ac{}".format(d))
@@ -160,87 +175,112 @@ class quantumTreeSearch:
 
 		else:
 			
-			self.avg_branching = int(np.round(np.mean(self.branching)))
-			#print("avg - {}".format(self.avg_branching))
+			self.leafs = False
+			inc = 1
+			while not self.leafs:
 
-			if iterations == None:
-				iterations = int(np.floor(np.pi/4 * np.sqrt(self.avg_branching**self.depth)))
+				if self.mode == "iterative_deepning":
 
-			extra_r = [self.states_d["states_d{0}".format(i)] for i in range(self.depth)] + [self.actions_d["action{0}".format(i)] for i in range(self.depth)]
-			
-			#############################
-			########## ORACLE ###########
-			#############################
+					self.q_tree = self.traverse(depth=inc, mode="depth")
+				else:
+					self.leafs = True
 
-			oracle = QuantumCircuit(self.s_qubits)
-			sbin = bin(goal_state)[2:].zfill(self.s_qubits)
+				self.avg_branching = np.round(np.mean(self.branching))
+				#print("avg - {}".format(self.avg_branching))
 
-			for i,j in zip(range(self.s_qubits), reversed(range(self.s_qubits))):
-				if not int(sbin[i]):
-					oracle.x(j)
-			oracle.h(self.s_qubits-1)
-			oracle.mct(list(range(self.s_qubits-1)),self.s_qubits-1)
-			oracle.h(self.s_qubits-1)
-			for i,j in zip(range(self.s_qubits), reversed(range(self.s_qubits))):
-				if not int(sbin[i]):
-					oracle.x(j)
+				if iterations == None:
+					iterations = int(np.floor(np.pi/4 * np.sqrt(self.avg_branching**self.depth)))
 
-			self.q_tree_inverse = self.q_tree.inverse()
+				#############################
+				########## ORACLE ###########
+				#############################
 
-			self.diffusion_circuit = QuantumCircuit()
-			self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(0)])
+				oracle = QuantumCircuit(self.s_qubits)
+				sbin = bin(self.goal_state)[2:].zfill(self.s_qubits)
 
-			regs = [i for i in self.states_d["states_d{0}".format(0)]]
-			regs_diffusion = []
-			for d in range(1,self.depth+1):
-				self.diffusion_circuit.add_register(self.actions_d["action{0}".format(d-1)])
-				regs += [i for i in self.actions_d["action{0}".format(d-1)]]
-				regs_diffusion += [i for i in self.actions_d["action{0}".format(d-1)]]
+				for i,j in zip(range(self.s_qubits), reversed(range(self.s_qubits))):
+					if not int(sbin[i]):
+						oracle.x(j)
+				oracle.h(self.s_qubits-1)
+				oracle.mct(list(range(self.s_qubits-1)),self.s_qubits-1)
+				oracle.h(self.s_qubits-1)
+				for i,j in zip(range(self.s_qubits), reversed(range(self.s_qubits))):
+					if not int(sbin[i]):
+						oracle.x(j)
+				self.q_tree_inverse = self.q_tree.inverse()
 
-				self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(d)])
-				regs += [i for i in self.states_d["states_d{0}".format(d)]]
-			
-			self.diffusion_circuit = self.diffusion_circuit.compose(self.q_tree_inverse, regs)
-			self.diffusion_circuit.x(regs_diffusion)
-			#self.diffusion_circuit.x(regs)
-			self.diffusion_circuit.h(regs_diffusion[-1])
-			#self.diffusion_circuit.h(regs[-1])
-			self.diffusion_circuit.mct(regs_diffusion[:-1], regs_diffusion[-1])
-			#self.diffusion_circuit.mct(regs[:-1], regs[-1])
-			self.diffusion_circuit.h(regs_diffusion[-1])
-			#self.diffusion_circuit.h(regs[-1])
-			self.diffusion_circuit.x(regs_diffusion)
-			#self.diffusion_circuit.x(regs)
-			self.diffusion_circuit = self.diffusion_circuit.compose(self.q_tree, regs)
+				self.diffusion_circuit = QuantumCircuit()
+				self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(0)])
 
-			for i in range(iterations):
+				regs = [i for i in self.states_d["states_d{0}".format(0)]]
+				regs_diffusion = []
+				for d in range(1,self.depth+1):
+					self.diffusion_circuit.add_register(self.actions_d["action{0}".format(d-1)])
+					regs += [i for i in self.actions_d["action{0}".format(d-1)]]
+					regs_diffusion += [i for i in self.actions_d["action{0}".format(d-1)]]
+
+					self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(d)])
+					regs += [i for i in self.states_d["states_d{0}".format(d)]]
+				
+				self.diffusion_circuit = self.diffusion_circuit.compose(self.q_tree_inverse, regs)
+				self.diffusion_circuit.x(regs_diffusion)
+				#self.diffusion_circuit.x(regs)
+				self.diffusion_circuit.h(regs_diffusion[-1])
+				#self.diffusion_circuit.h(regs[-1])
+				self.diffusion_circuit.mct(regs_diffusion[:-1], regs_diffusion[-1])
+				#self.diffusion_circuit.mct(regs[:-1], regs[-1])
+				self.diffusion_circuit.h(regs_diffusion[-1])
+				#self.diffusion_circuit.h(regs[-1])
+				self.diffusion_circuit.x(regs_diffusion)
+				#self.diffusion_circuit.x(regs)
+				self.diffusion_circuit = self.diffusion_circuit.compose(self.q_tree, regs)
+
+				for i in range(iterations):
+					self.q_tree.barrier()
+					self.q_tree = self.q_tree.compose(oracle, [i for i in self.states_d["states_d{0}".format(self.depth)]])
+					self.q_tree.barrier()
+					self.q_tree = self.q_tree.compose(self.diffusion_circuit, regs)
+				
 				self.q_tree.barrier()
-				self.q_tree = self.q_tree.compose(oracle, [i for i in self.states_d["states_d{0}".format(self.depth)]])
-				self.q_tree.barrier()
-				self.q_tree = self.q_tree.compose(self.diffusion_circuit, regs)
-			
-			self.q_tree.barrier()
-			self.a_classical = {}
-			for d in range(self.depth):
-				self.a_classical["actions{0}".format(d)]=ClassicalRegister(self.a_qubits,name="ac{}".format(d))
-				self.q_tree.add_register(self.a_classical["actions{0}".format(d)])
-				self.q_tree.measure(self.actions_d["action{0}".format(d)], self.a_classical["actions{0}".format(d)])
+				self.a_classical = {}
+				for d in range(self.depth):
+					self.a_classical["actions{0}".format(d)]=ClassicalRegister(self.a_qubits,name="ac{}".format(d))
+					self.q_tree.add_register(self.a_classical["actions{0}".format(d)])
+					self.q_tree.measure(self.actions_d["action{0}".format(d)], self.a_classical["actions{0}".format(d)])
+				if self.mode == "iterative_deepning":
+					self.s_classical = ClassicalRegister(self.s_qubits)
+					self.q_tree.add_register(self.s_classical)
+					self.q_tree.measure(self.states_d["states_d{0}".format(self.depth)], self.s_classical)
 
-			counts = execute_circuit(self.q_tree, shots=shots)
+				counts = execute_circuit(self.q_tree, shots=shots)
 
-			new_counts = {}
-			optimal_action_seq = None
-			optimal_action_counter = 0
-			for k in counts:
-				k_list = k.split()
-				k_reversed = list(map(lambda x: x[::-1], k_list))
-				k_reversed_int = list(map( lambda x: int(x,2), k_reversed))
-				k_reversed_str = list(map( lambda x: str(x), k_reversed_int))
-				k_new = ' '.join(k_reversed_str)
-				new_counts[k_new] = counts[k]
-				if new_counts[k_new] > optimal_action_counter:
-					optimal_action_seq = k_new
-			
-			return new_counts, optimal_action_seq
+
+				new_counts = {}
+				optimal_action_seq = None
+				optimal_action_counter = 0
+				optimal_goal_state = 0
+
+				for k in counts:
+					k_list = k.split()
+					k_reversed = list(map(lambda x: x[::-1], k_list))
+					k_reversed_int = list(map( lambda x: int(x,2), k_reversed))
+					state = k_reversed_int[-1]
+					k_reversed_str = list(map( lambda x: str(x), k_reversed_int))
+					k_new = ' '.join(k_reversed_str)
+					new_counts[k_new] = counts[k]
+					if new_counts[k_new] > optimal_action_counter:
+						optimal_action_seq = k_new
+						optimal_goal_state = state
+				
+				if optimal_goal_state == self.goal_state:
+					self.leafs = True
+				else:
+					inc+=1
+
+
+			if self.mode == 'iterative_deepning':
+				return new_counts, optimal_action_seq, d
+			else:
+				return new_counts, optimal_action_seq
 
 	
