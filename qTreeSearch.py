@@ -25,7 +25,8 @@ class quantumTreeSearch:
 			raise ValueError("number of actions or action set must be specidified")
 
 		self.a_qubits = int(np.ceil(np.log2(self.n_actions)))
-		self.s_qubits = int(np.ceil(np.log2(self.n_states)))
+		#self.s_qubits = int(np.ceil(np.log2(self.n_states)))
+		self.s_qubits = self.n_states
 
 
 	def A(self, states, constant_branching=True):
