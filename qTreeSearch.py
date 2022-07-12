@@ -26,12 +26,12 @@ class quantumTreeSearch:
 
 		self.a_qubits = int(np.ceil(np.log2(self.n_actions)))
 		#self.s_qubits = int(np.ceil(np.log2(self.n_states)))
-		self.s_qubits = self.n_states
+		self.s_qubits = 1
 
 
-	def A(self, states, constant_branching=True):
+	def A(self, state, constant_branching=True):
 
-		if states is None:
+		if state is None:
 			raise ValueError("reachable states should be specified")
 
 		s = QuantumRegister(self.s_qubits)
@@ -43,30 +43,26 @@ class quantumTreeSearch:
 			circuit.h(a)
 		
 		else:
-			for state in states:
+			
+			a_s = len(self.tree[state])
+			self.branching.append(a_s)
 
-				if self.tree[state] == []:
-					pass
-				else:
+			state_a = [complex(0.0,0.0) for i in range(2**self.a_qubits)]
 
-					a_s = len(self.tree[state])
-					self.branching.append(a_s)
+			#create uniform superposition over the set of admissible actions
+			for (a_d,sprime) in self.tree[state]:
+				state_a[a_d] += complex(1/np.sqrt(a_s) , 0.0)
 
-					state_v = [complex(0.0,0.0) for i in range(2**self.a_qubits)]
+			#sbin=bin(state)[2:].zfill(self.s_qubits)
+			sbin='1'
 
-					#create uniform superposition over the set of admissible actions
-					for (a_d,sprime) in self.tree[state]:
-						state_v[a_d] += complex(1/np.sqrt(a_s) , 0.0)
+			ctrl_init_a = StatePreparation(state_a, label=r"$\mathcal{A}$").control(self.s_qubits, ctrl_state=sbin)
 
-					sbin=bin(state)[2:].zfill(self.s_qubits)
-
-					ctrl_init_a = StatePreparation(state_v, label=r"$\mathcal{A}$").control(self.s_qubits, ctrl_state=sbin)
-
-					circuit = circuit.compose(ctrl_init_a, [i for i in s]+[i for i in a])
+			circuit = circuit.compose(ctrl_init_a, [i for i in s]+[i for i in a])
 
 		return circuit
 
-	def T(self, states):
+	def T(self, state, a_d):
 		
 		s = QuantumRegister(self.s_qubits)
 		a = QuantumRegister(self.a_qubits)
@@ -74,29 +70,34 @@ class quantumTreeSearch:
 
 		circuit = QuantumCircuit(s,a,sprime, name=r"$\mathcal{T}$")
 		
-		for state in states:
-			sbin=bin(state)[2:].zfill(self.s_qubits)
-			
-			for (a_d,sp) in self.tree[state]:
+		#for state in states:
+			#sbin=bin(state)[2:].zfill(self.s_qubits)
+		sbin='1'
+		#for (a_d,sp) in self.tree[state]:
+		'''
+			if self.tree[state] == []:
+				#state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
+				#state_v[state] += complex(1.0 , 0.0)
+				pass
+				
+				abin = bin(a_d)[2:].zfill(self.a_qubits)
+				
+				state_v = [complex(0.0,0.0), complex(1.0,0.0)]
 
-				if self.tree[state] == []:
-					state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
-					state_v[state] += complex(1.0 , 0.0)
-					abin = bin(a_d)[2:].zfill(self.a_qubits)
-					
-					ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
-					
-					circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
+				ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
+				
+				circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
+		'''
+		
+		#state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
+		#state_v[sp] += complex(1.0 , 0.0)
 
-				else:
-					
-					state_v = [complex(0.0,0.0) for i in range(2**self.s_qubits)]
-					state_v[sp] += complex(1.0 , 0.0)
-					abin = bin(a_d)[2:].zfill(self.a_qubits)
-					
-					ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
-					
-					circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
+		abin = bin(a_d)[2:].zfill(self.a_qubits)
+		state_v = [complex(0.0,0.0), complex(1.0,0.0)]
+		
+		ctrl_init_t = StatePreparation(state_v, label=r"$\mathcal{T}$").control(self.s_qubits+self.a_qubits, ctrl_state=abin+sbin)
+		
+		circuit = circuit.compose(ctrl_init_t, [i for i in s]+[i for i in a]+[i for i in sprime])
 
 		return circuit
 
@@ -123,35 +124,55 @@ class quantumTreeSearch:
 				self.actions_d["action{0}".format(d)] = QuantumRegister(self.a_qubits,"a{0}".format(d))
 
 			self.states_d = {}
-			self.states_d["states_d{0}".format(0)]=QuantumRegister(self.s_qubits,name="s{}".format(0))
+			for i in range(self.n_states):
+				self.states_d["states_d{0}".format(i)]=QuantumRegister(self.s_qubits,name="s{}".format(i))
 
-			for d in range(1,depth+1):
-				self.states_d["states_d{0}".format(d)] = QuantumRegister(self.s_qubits,"s{}".format(d))
+			#for d in range(1,depth+1):
+				#self.states_d["states_d{0}".format(d)] = QuantumRegister(self.s_qubits,"s{}".format(d))
 			
 			self.q_tree = QuantumCircuit()
-			self.q_tree.add_register(self.states_d["states_d{0}".format(0)])
+			for i in range(self.n_states):
+				self.q_tree.add_register(self.states_d["states_d{0}".format(i)])
+
+			self.q_tree.x(self.states_d["states_d{0}".format(0)])
 
 			neighbours = [0]
 			n=[]
 			for d in range(1,depth+1):
 				self.q_tree.add_register(self.actions_d["action{0}".format(d-1)])
-
+				
+				'''
 				a_d = self.A(neighbours, constant_branching=self.constant_b)
 					
 				regs = [i for i in self.states_d["states_d{0}".format(d-1)]] + [i for i in self.actions_d["action{0}".format(d-1)]]
 
 				self.q_tree = self.q_tree.compose(a_d, regs)
-
+				self.q_tree.barrier()
+				'''
 				for s in neighbours:
 					n.append([n_s for (_,n_s) in self.tree[s]])
 
-				self.q_tree.add_register(self.states_d["states_d{0}".format(d)])
+				#self.q_tree.add_register(self.states_d["states_d{0}".format(d)])
 
-				regs = [i for i in self.states_d["states_d{0}".format(d-1)]] + [i for i in self.actions_d["action{0}".format(d-1)]] + [i for i in self.states_d["states_d{0}".format(d)]]
+				for state in neighbours:
+					if self.tree[state] != []:
+						
+						a_d = self.A(state, constant_branching=self.constant_b)
+					
+						regs = [i for i in self.states_d["states_d{0}".format(state)]] + [i for i in self.actions_d["action{0}".format(d-1)]]
 
-				t_d = self.T(neighbours)
+						self.q_tree = self.q_tree.compose(a_d, regs)
+						self.q_tree.barrier()
 
-				self.q_tree = self.q_tree.compose(t_d, regs)
+						for (a_d,sp) in self.tree[state]:
+							regs = [i for i in self.states_d["states_d{0}".format(state)]] + [i for i in self.actions_d["action{0}".format(d-1)]] + [i for i in self.states_d["states_d{0}".format(sp)]]
+
+
+							#t_d = self.T(neighbours)
+							t_d = self.T(state, a_d)
+
+							self.q_tree = self.q_tree.compose(t_d, regs)
+							self.q_tree.barrier()
 
 				neighbours = list(chain(*n))
 				
@@ -198,6 +219,7 @@ class quantumTreeSearch:
 				#############################
 
 				oracle = QuantumCircuit(self.s_qubits)
+				'''
 				sbin = bin(self.goal_state)[2:].zfill(self.s_qubits)
 
 				for i,j in zip(range(self.s_qubits), reversed(range(self.s_qubits))):
@@ -209,20 +231,28 @@ class quantumTreeSearch:
 				for i,j in zip(range(self.s_qubits), reversed(range(self.s_qubits))):
 					if not int(sbin[i]):
 						oracle.x(j)
+				'''
+				oracle.z(0)
+
 				self.q_tree_inverse = self.q_tree.inverse()
 
 				self.diffusion_circuit = QuantumCircuit()
-				self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(0)])
+				#self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(0)])
 
-				regs = [i for i in self.states_d["states_d{0}".format(0)]]
+				#regs = [i for i in self.states_d["states_d{0}".format(0)]]\
+				regs=[]
+				for i in range(self.n_states):
+					regs += [i for i in self.states_d["states_d{0}".format(i)]]
+					self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(i)])
+
 				regs_diffusion = []
-				for d in range(1,self.depth+1):
-					self.diffusion_circuit.add_register(self.actions_d["action{0}".format(d-1)])
-					regs += [i for i in self.actions_d["action{0}".format(d-1)]]
-					regs_diffusion += [i for i in self.actions_d["action{0}".format(d-1)]]
+				for d in range(self.depth):
+					self.diffusion_circuit.add_register(self.actions_d["action{0}".format(d)])
+					regs += [i for i in self.actions_d["action{0}".format(d)]]
+					regs_diffusion += [i for i in self.actions_d["action{0}".format(d)]]
 
-					self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(d)])
-					regs += [i for i in self.states_d["states_d{0}".format(d)]]
+					#self.diffusion_circuit.add_register(self.states_d["states_d{0}".format(d)])
+					#regs += [i for i in self.states_d["states_d{0}".format(d)]]
 				
 				self.diffusion_circuit = self.diffusion_circuit.compose(self.q_tree_inverse, regs)
 				self.diffusion_circuit.x(regs_diffusion)
@@ -239,7 +269,7 @@ class quantumTreeSearch:
 
 				for i in range(iterations):
 					self.q_tree.barrier()
-					self.q_tree = self.q_tree.compose(oracle, [i for i in self.states_d["states_d{0}".format(self.depth)]])
+					self.q_tree = self.q_tree.compose(oracle, [i for i in self.states_d["states_d{0}".format(self.goal_state)]])
 					self.q_tree.barrier()
 					self.q_tree = self.q_tree.compose(self.diffusion_circuit, regs)
 				
@@ -252,7 +282,8 @@ class quantumTreeSearch:
 				if self.mode == "iterative_deepning":
 					self.s_classical = ClassicalRegister(self.s_qubits)
 					self.q_tree.add_register(self.s_classical)
-					self.q_tree.measure(self.states_d["states_d{0}".format(self.depth)], self.s_classical)
+					self.q_tree.measure(self.states_d["states_d{0}".format(self.goal_state)], self.s_classical)
+				
 
 				counts = execute_circuit(self.q_tree, shots=shots)
 
@@ -274,14 +305,14 @@ class quantumTreeSearch:
 						optimal_action_seq = k_new
 						optimal_goal_state = state
 				
-				if optimal_goal_state == self.goal_state:
+				if optimal_goal_state: #== self.goal_state:
 					self.leafs = True
 				else:
 					inc+=1
 
 
 			if self.mode == 'iterative_deepning':
-				return new_counts, optimal_action_seq, d
+				return new_counts, optimal_action_seq, inc
 			else:
 				return new_counts, optimal_action_seq
 
