@@ -24,13 +24,13 @@ qts = QTS(tree=transition_kernel, n_states=states, action_set=action_set)
 
 #circuit = qts.A([0], constant_branching=False)
 
-#q_tree = qts.traverse(depth=2, mode="depth")
+q_tree = qts.traverse(depth=2, mode="depth")
 
-q_tree = qts.traverse(mode="iterative_deepning")
+#q_tree = qts.traverse(mode="iterative_deepning")
 
-#counts, actions = qts.measure(goal_state=7, iterations=None)
+counts, actions = qts.measure(goal_state=7, iterations=None, noise_model_device="custom", prob_1=0.001, prob_2=0.001)
 
-counts, actions, depth = qts.measure(goal_state=7, iterations=None)
+#counts, actions, depth = qts.measure(goal_state=7, iterations=None, noise_model_device="custom")
 
 plot_histogram(counts)
 plt.show()

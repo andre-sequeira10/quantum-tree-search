@@ -183,7 +183,7 @@ class quantumTreeSearch:
 					break
 		return self.q_tree
 
-	def measure(self, goal_state=None, iterations=None, shots=1024):
+	def measure(self, goal_state=None, iterations=None, shots=1024, noise_model_device=None, prob_1=0.001, prob_2=0.001):
 
 		self.goal_state = goal_state
 
@@ -285,7 +285,7 @@ class quantumTreeSearch:
 					self.q_tree.measure(self.states_d["states_d{0}".format(self.goal_state)], self.s_classical)
 				
 
-				counts = execute_circuit(self.q_tree, shots=shots)
+				counts = execute_circuit(self.q_tree, shots=shots, noise_model_device=noise_model_device, prob_1=prob_1, prob_2=prob_2)
 
 
 				new_counts = {}
