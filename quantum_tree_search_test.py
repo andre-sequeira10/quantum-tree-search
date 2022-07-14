@@ -3,8 +3,8 @@ from executeCircuit import execute_circuit
 from qiskit.visualization import plot_histogram
 import matplotlib.pyplot as plt
 import numpy as np 
-'''
-states=9
+
+states=5
 actions=4
 action_set=list(range(actions))
 
@@ -35,7 +35,23 @@ transition_kernel[2] = [(0,4),(1,5)]
 
 for i in range(3,states):
 	transition_kernel[i] = []
+'''
 
+states=7
+actions=3
+action_set=list(range(actions))
+
+transition_kernel= np.zeros(states,dtype=object)
+steps = 1
+
+#action, sprime
+transition_kernel[0] = [(0,1),(1,2)]
+transition_kernel[1] = [(0,6), (1,3) , (2,4)]
+transition_kernel[2] = [(0,4),(1,5)]
+
+for i in range(3,states):
+	transition_kernel[i] = []
+	
 qts = QTS(tree=transition_kernel, n_states=states, action_set=action_set)
 
 #circuit = qts.A([0], constant_branching=False)
