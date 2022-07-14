@@ -22,6 +22,15 @@ qts = QTS(tree=transition_kernel, n_states=states, action_set=action_set)
 
 q_tree = qts.traverse(depth=2, mode="depth")
 counts, actions = qts.measure(goal_state=4, iterations=1)
+
+
 print(actions)
 plot_histogram(counts)
+
 plt.show()
+
+cnot_count = qts.count_ops(op="cx")
+
+print("Number of CNOTs - {}".format(cnot_count))
+
+
