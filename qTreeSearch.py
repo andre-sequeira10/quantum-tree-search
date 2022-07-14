@@ -5,6 +5,9 @@ from qiskit.circuit.library import StatePreparation
 import matplotlib.pyplot as plt
 from executeCircuit import execute_circuit, basis_states_probs
 from itertools import chain
+from qiskit.converters import circuit_to_dag
+from qiskit.compiler import transpile
+
 
 class quantumTreeSearch:
 	def __init__(self, tree=None, n_states=None, n_actions=None, action_set=None, constant_branching=False) -> None:
@@ -277,6 +280,17 @@ class quantumTreeSearch:
 		else:
 			self.q_tree.draw(output=output)
 			plt.show()
+
+
+	def count_ops(self, op="cx", device=None):
+        
+		if device is None:
+			device = Aer.get_backend("qasm_simulator")
+
+		qc_transpiled = transpile(self.q_tree, backend=device)
+		qc_transpiled_dag = circuit_to_dag(qc_transpiled)
+
+		return qc_transpiled_dag.count_ops()[op]
 
 
 	

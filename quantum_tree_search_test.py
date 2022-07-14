@@ -53,3 +53,7 @@ plt.show()
 
 qts.draw_circuit()
 
+cnot_number = qts.count_ops(op="cx")
+print("Number of CNOTS - {}".format(cnot_number))
+
+
