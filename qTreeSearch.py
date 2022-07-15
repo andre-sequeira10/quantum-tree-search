@@ -18,6 +18,7 @@ class quantumTreeSearch:
 		self.n_actions = len(action_set)
 		self.constant_b = constant_branching
 		self.branching = []
+		
 		self.mode = None
 
 		if self.tree is None:
@@ -42,10 +43,7 @@ class quantumTreeSearch:
 
 		circuit = QuantumCircuit(s,a, name=r"$\mathcal{A}$")
 		
-		if constant_branching:
-			circuit.h(a)
-		
-		else:
+		if not constant_branching:
 			
 			a_s = len(self.tree[state])
 			self.branching.append(a_s)
@@ -90,6 +88,8 @@ class quantumTreeSearch:
 			self.mode = mode
 		
 		self.branching = []
+		if self.constant_b:
+			self.branching.append(self.n_actions)
 
 		if mode == "iterative_deepning":
 
@@ -119,10 +119,16 @@ class quantumTreeSearch:
 
 			neighbours = [0]
 			n=[]
-			for d in range(1,depth+1):
-				self.q_tree.add_register(self.actions_d["action{0}".format(d-1)])
-				
+
+			if self.constant_b:
+				for d in range(1,depth+1):
+					self.q_tree.add_register(self.actions_d["action{0}".format(d-1)])
+					self.q_tree.h(self.actions_d["action{0}".format(d-1)])
 			
+			for d in range(1,depth+1):
+				if not self.constant_b:
+					self.q_tree.add_register(self.actions_d["action{0}".format(d-1)])
+			 
 				for s in neighbours:
 					n.append([n_s for (_,n_s) in self.tree[s]])
 
@@ -259,6 +265,7 @@ class quantumTreeSearch:
 					new_counts[k_new] = counts[k]
 					if new_counts[k_new] > optimal_action_counter:
 						optimal_action_seq = k_new
+						optimal_action_counter = new_counts[k_new]
 						optimal_goal_state = state
 				
 				if optimal_goal_state: #== self.goal_state:
