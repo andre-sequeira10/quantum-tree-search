@@ -153,7 +153,8 @@ class quantumTreeSearch:
 							self.q_tree.barrier()
 
 				neighbours = list(chain(*n))
-				
+				n = []
+				print(neighbours)
 				#check if we have only leafs
 				states_list = [self.tree[state] == [] for state in neighbours]
 				if states_list[0] and len(states_list):
